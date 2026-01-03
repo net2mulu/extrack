@@ -39,9 +39,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install wget for healthcheck and Prisma CLI globally
+# Install wget for healthcheck, Prisma CLI globally, and dotenv for prisma.config.ts
 RUN apk add --no-cache wget && \
-    npm install -g prisma@^7.2.0
+    npm install -g prisma@^7.2.0 dotenv
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -60,19 +60,41 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modul
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 
+# Copy Prisma config file (needed for migrations)
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+
+# Copy dotenv and TypeScript/ts-node for prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/dotenv ./node_modules/dotenv
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/typescript ./node_modules/typescript
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/ts-node ./node_modules/ts-node
+
 # Copy package.json and node_modules/.bin for npx to work
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
 
 # Create entrypoint script for migrations (as root, before switching user)
 RUN echo '#!/bin/sh' > /entrypoint.sh && \
-    echo 'set -e' >> /entrypoint.sh && \
+    echo 'set +e' >> /entrypoint.sh && \
     echo 'if [ -n "$DATABASE_URL" ]; then' >> /entrypoint.sh && \
-    echo '  echo "Waiting for database..."' >> /entrypoint.sh && \
-    echo '  sleep 3' >> /entrypoint.sh && \
+    echo '  echo "=========================================="' >> /entrypoint.sh && \
+    echo '  echo "Waiting for database connection..."' >> /entrypoint.sh && \
+    echo '  sleep 5' >> /entrypoint.sh && \
     echo '  echo "Running database migrations..."' >> /entrypoint.sh && \
-    echo '  cd /app && DATABASE_URL="$DATABASE_URL" prisma migrate deploy || echo "Migration failed or already applied"' >> /entrypoint.sh && \
+    echo '  cd /app' >> /entrypoint.sh && \
+    echo '  export DATABASE_URL' >> /entrypoint.sh && \
+    echo '  prisma migrate deploy' >> /entrypoint.sh && \
+    echo '  MIGRATION_EXIT=$?' >> /entrypoint.sh && \
+    echo '  if [ $MIGRATION_EXIT -eq 0 ]; then' >> /entrypoint.sh && \
+    echo '    echo "✓ Migrations completed successfully"' >> /entrypoint.sh && \
+    echo '  else' >> /entrypoint.sh && \
+    echo '    echo "✗ Migration failed with exit code $MIGRATION_EXIT"' >> /entrypoint.sh && \
+    echo '    echo "Continuing anyway..."' >> /entrypoint.sh && \
+    echo '  fi' >> /entrypoint.sh && \
+    echo '  echo "=========================================="' >> /entrypoint.sh && \
+    echo 'else' >> /entrypoint.sh && \
+    echo '  echo "WARNING: DATABASE_URL not set, skipping migrations"' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
+    echo 'set -e' >> /entrypoint.sh && \
     echo 'exec "$@"' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
 
