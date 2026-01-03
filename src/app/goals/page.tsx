@@ -1,11 +1,10 @@
-import prisma from "@/lib/prisma";
 import { formatCurrency, getMonthKey } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Plus, Edit2, Trash2, ArrowLeft } from "lucide-react";
-import { deleteGoal, addToGoal, subtractFromGoal } from "@/server/actions/goalActions";
+import { deleteGoal, addToGoal, subtractFromGoal, getAllGoals } from "@/server/actions/goalActions";
 import { GoalActions } from "@/components/goals/GoalActions";
 import { AddGoalDialog } from "@/components/goals/AddGoalDialog";
 
@@ -18,9 +17,7 @@ export default async function GoalsPage({
   searchParams: { month?: string };
 }) {
   const monthKey = searchParams.month || getMonthKey();
-  const goals = await prisma.savingGoal.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const goals = await getAllGoals();
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">

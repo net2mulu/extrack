@@ -1,11 +1,13 @@
 import { getAllRecurringRules } from "@/server/actions/recurringRuleActions";
 import { getAllCategories } from "@/server/actions/categoryActions";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Settings, Repeat, Tag } from "lucide-react";
 import { RecurringRulesSection } from "@/components/settings/RecurringRulesSection";
 import { CategoriesSection } from "@/components/settings/CategoriesSection";
+import { AccountSection } from "@/components/settings/AccountSection";
 import { getMonthKey } from "@/lib/utils";
 
 export const dynamic = 'force-dynamic';
@@ -14,16 +16,17 @@ export const revalidate = 0;
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: { month?: string };
+  searchParams: Promise<{ month?: string }> | { month?: string };
 }) {
-  const monthKey = searchParams.month || getMonthKey();
+  const params = searchParams instanceof Promise ? await searchParams : searchParams;
+  const monthKey = params?.month || getMonthKey();
   const [recurringRules, categories] = await Promise.all([
     getAllRecurringRules(),
     getAllCategories(),
   ]);
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
+    <div className="space-y-4 animate-in fade-in duration-500 pb-24">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3">
           <Link href={`/?month=${monthKey}`}>
@@ -65,6 +68,19 @@ export default async function SettingsPage({
         </CardHeader>
         <CardContent>
           <CategoriesSection initialCategories={categories} />
+        </CardContent>
+      </Card>
+
+      {/* Account Section */}
+      <AccountSection />
+
+      {/* Sign Out Section */}
+      <Card className="border-destructive/20 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="text-base sm:text-lg text-destructive">Sign Out</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SignOutButton />
         </CardContent>
       </Card>
     </div>

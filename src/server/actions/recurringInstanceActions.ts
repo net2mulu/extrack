@@ -2,8 +2,11 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 
 export async function ensureRecurringInstancesForMonth(monthKey: string) {
+  const userId = await getCurrentUserId();
+  
   // Check if this is a current or future month
   const [year, month] = monthKey.split("-").map(Number);
   const monthDate = new Date(year, month - 1, 1);
@@ -16,9 +19,9 @@ export async function ensureRecurringInstancesForMonth(monthKey: string) {
     return; // Don't create instances for past months
   }
 
-  // Get all active recurring rules
+  // Get all active recurring rules for this user
   const activeRules = await prisma.recurringRule.findMany({
-    where: { active: true },
+    where: { active: true, userId },
   });
 
   // Ensure each active rule has an instance for this month
@@ -46,12 +49,17 @@ export async function ensureRecurringInstancesForMonth(monthKey: string) {
 }
 
 export async function getRecurringInstancesForMonth(monthKey: string) {
+  const userId = await getCurrentUserId();
+  
   // First ensure all active rules have instances (only for current/future months)
   await ensureRecurringInstancesForMonth(monthKey);
 
-  // Then fetch all instances (including past months)
+  // Then fetch all instances (including past months) for this user
   const instances = await prisma.recurringInstance.findMany({
-    where: { monthKey },
+    where: { 
+      monthKey,
+      rule: { userId },
+    },
     include: { 
       rule: { 
         include: { category: true } 

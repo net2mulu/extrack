@@ -1,4 +1,5 @@
 import { prisma } from '../src/lib/prisma'
+import bcrypt from "bcryptjs"
 
 async function main() {
     console.log('🌱 Starting seed...')
@@ -61,10 +62,26 @@ async function main() {
         console.log(`Upserted category: ${cat.name}`)
     }
 
+    // 1.5 Create/ensure a default demo user for seeding user-owned data
+    // This is a green-field app; the demo user makes seeds deterministic.
+    const demoEmail = "demo@extrack.local";
+    const demoPassword = "demo12345"; // change anytime
+    const existingDemo = await prisma.user.findUnique({ where: { email: demoEmail } });
+    const demoUser =
+        existingDemo ||
+        (await prisma.user.create({
+            data: {
+                email: demoEmail,
+                name: "Demo User",
+                password: await bcrypt.hash(demoPassword, 10),
+            },
+        }));
+    console.log(`Using demo user: ${demoUser.email}`);
+
     // 2. Ensuring Recurring Rules (Idempotent)
     const rentCatId = categoriesMap.get('Rent');
     if (rentCatId) {
-        const existingRent = await prisma.recurringRule.findFirst({ where: { name: 'Monthly Rent' } });
+        const existingRent = await prisma.recurringRule.findFirst({ where: { name: 'Monthly Rent', userId: demoUser.id } });
         if (!existingRent) {
             await prisma.recurringRule.create({
                 data: {
@@ -73,6 +90,7 @@ async function main() {
                     dayOfMonth: 1,
                     categoryId: rentCatId,
                     interval: 'MONTHLY',
+                    userId: demoUser.id,
                 }
             });
             console.log('Created Rent Rule');
@@ -81,7 +99,7 @@ async function main() {
 
     const microCatId = categoriesMap.get('Microfinance');
     if (microCatId) {
-        const existingMicro = await prisma.recurringRule.findFirst({ where: { name: 'Microfinance Repayment' } });
+        const existingMicro = await prisma.recurringRule.findFirst({ where: { name: 'Microfinance Repayment', userId: demoUser.id } });
         if (!existingMicro) {
             await prisma.recurringRule.create({
                 data: {
@@ -90,6 +108,7 @@ async function main() {
                     dayOfMonth: 5,
                     categoryId: microCatId,
                     interval: 'MONTHLY',
+                    userId: demoUser.id,
                 }
             });
             console.log('Created Microfinance Rule');
@@ -97,7 +116,7 @@ async function main() {
     }
 
     // 3. Saving Goal
-    const existingGoal = await prisma.savingGoal.findFirst({ where: { title: 'New Phone' } });
+    const existingGoal = await prisma.savingGoal.findFirst({ where: { title: 'New Phone', userId: demoUser.id } });
     if (!existingGoal) {
         await prisma.savingGoal.create({
             data: {
@@ -105,6 +124,7 @@ async function main() {
                 targetAmount: 50000,
                 currentAmount: 15000,
                 color: '#ec4899', // Pink
+                userId: demoUser.id,
             }
         })
         console.log('Created Saving Goal');

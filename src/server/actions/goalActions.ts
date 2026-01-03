@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { addTransaction } from "./transactionActions";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 
 export async function createGoal(data: {
   title: string;
@@ -11,6 +12,8 @@ export async function createGoal(data: {
   deadline?: Date | null;
   color?: string;
 }) {
+  const userId = await getCurrentUserId();
+  
   const goal = await prisma.savingGoal.create({
     data: {
       title: data.title,
@@ -18,6 +21,7 @@ export async function createGoal(data: {
       currentAmount: data.currentAmount || 0,
       deadline: data.deadline || null,
       color: data.color || "#3b82f6",
+      userId,
     },
   });
   revalidatePath("/goals");
@@ -34,16 +38,38 @@ export async function updateGoal(
     color?: string;
   }
 ) {
-  const goal = await prisma.savingGoal.update({
+  const userId = await getCurrentUserId();
+  
+  // Verify goal belongs to user
+  const goal = await prisma.savingGoal.findUnique({
+    where: { id: goalId },
+  });
+  
+  if (!goal || goal.userId !== userId) {
+    throw new Error("Goal not found");
+  }
+  
+  const updated = await prisma.savingGoal.update({
     where: { id: goalId },
     data,
   });
   revalidatePath("/goals");
   revalidatePath("/");
-  return goal;
+  return updated;
 }
 
 export async function deleteGoal(goalId: string) {
+  const userId = await getCurrentUserId();
+  
+  // Verify goal belongs to user
+  const goal = await prisma.savingGoal.findUnique({
+    where: { id: goalId },
+  });
+  
+  if (!goal || goal.userId !== userId) {
+    throw new Error("Goal not found");
+  }
+  
   await prisma.savingGoal.delete({
     where: { id: goalId },
   });
@@ -73,12 +99,14 @@ async function getOrCreateSavingsCategory() {
 }
 
 export async function addToGoal(goalId: string, amount: number) {
-  // Get goal details for transaction note
+  const userId = await getCurrentUserId();
+  
+  // Get goal details for transaction note (verify it belongs to user)
   const goal = await prisma.savingGoal.findUnique({
     where: { id: goalId },
   });
 
-  if (!goal) {
+  if (!goal || goal.userId !== userId) {
     throw new Error("Goal not found");
   }
 
@@ -107,12 +135,14 @@ export async function addToGoal(goalId: string, amount: number) {
 }
 
 export async function subtractFromGoal(goalId: string, amount: number) {
-  // Get goal details for transaction note
+  const userId = await getCurrentUserId();
+  
+  // Get goal details for transaction note (verify it belongs to user)
   const goal = await prisma.savingGoal.findUnique({
     where: { id: goalId },
   });
 
-  if (!goal) {
+  if (!goal || goal.userId !== userId) {
     throw new Error("Goal not found");
   }
 
@@ -146,7 +176,10 @@ export async function subtractFromGoal(goalId: string, amount: number) {
 }
 
 export async function getAllGoals() {
+  const userId = await getCurrentUserId();
+  
   return await prisma.savingGoal.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
   });
 }

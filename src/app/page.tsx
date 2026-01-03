@@ -22,7 +22,22 @@ export default async function Dashboard({
   const monthKey = params?.month || getMonthKey();
   
   // Fetch data for this specific month
-  const data = await getDashboardData(monthKey);
+  let data;
+  try {
+    data = await getDashboardData(monthKey);
+  } catch (error) {
+    // If user is not authenticated, middleware should redirect, but handle gracefully
+    console.error("Error fetching dashboard data:", error);
+    data = {
+      ledger: null,
+      instances: [],
+      recentTransactions: [],
+      goals: [],
+      budgets: [],
+      totalExpenses: 0,
+      totalIncome: 0,
+    };
+  }
 
   // Ensure all values are numbers and default to 0 if undefined/null
   const expenses = Number(data.totalExpenses) || 0;
@@ -44,11 +59,6 @@ export default async function Dashboard({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img 
-            src="/logo.png" 
-            alt="ExTrack Logo" 
-            className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
-          />
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
         </div>
       </div>

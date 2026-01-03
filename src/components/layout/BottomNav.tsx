@@ -19,6 +19,11 @@ export function BottomNav() {
   const searchParams = useSearchParams();
   const monthParam = searchParams.get("month");
   
+  // Hide bottom nav on auth pages
+  if (pathname?.startsWith("/auth")) {
+    return null;
+  }
+  
   // Build href with month parameter preserved (except for Goals and Settings which don't use month)
   const getHref = (path: string) => {
     if (path === "/goals" || path === "/settings") {

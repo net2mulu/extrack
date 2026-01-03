@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { TopNav } from "@/components/layout/TopNav";
 import { ToastProvider } from "@/components/ui/toast";
+import { SessionProvider } from "@/components/auth/SessionProvider";
 
 export const metadata: Metadata = {
   title: "ExTrack",
@@ -35,15 +37,20 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <link rel="manifest" href="/site.webmanifest" />
       </head>
-      <body className="antialiased min-h-screen bg-background pb-20">
-        <ToastProvider>
-          <main className="container mx-auto max-w-md px-3 sm:p-4 pb-6">
-            {children}
-          </main>
-          <Suspense fallback={null}>
-            <BottomNav />
-          </Suspense>
-        </ToastProvider>
+      <body className="antialiased min-h-screen bg-background">
+        <SessionProvider>
+          <ToastProvider>
+            <Suspense fallback={null}>
+              <TopNav />
+            </Suspense>
+            <main className="container mx-auto max-w-md px-3 sm:p-4 pb-24 pt-4">
+              {children}
+            </main>
+            <Suspense fallback={null}>
+              <BottomNav />
+            </Suspense>
+          </ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { TransactionType } from "@prisma/client";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 
 export async function addTransaction(data: {
     amount: number;
@@ -11,6 +12,8 @@ export async function addTransaction(data: {
     note?: string;
     date: Date;
 }) {
+    const userId = await getCurrentUserId();
+    
     await prisma.transaction.create({
         data: {
             amount: data.amount,
@@ -18,6 +21,7 @@ export async function addTransaction(data: {
             categoryId: data.categoryId,
             note: data.note,
             date: data.date,
+            userId,
         },
     });
     revalidatePath("/");
@@ -25,13 +29,17 @@ export async function addTransaction(data: {
 }
 
 export async function payRecurringBill(instanceId: string, amount: number, date: Date) {
-    // 1. Get instance to find category
+    const userId = await getCurrentUserId();
+    
+    // 1. Get instance to find category (verify it belongs to user)
     const instance = await prisma.recurringInstance.findUnique({
         where: { id: instanceId },
         include: { rule: true },
     });
 
-    if (!instance) throw new Error("Bill not found");
+    if (!instance || instance.rule.userId !== userId) {
+        throw new Error("Bill not found");
+    }
 
     // 2. Create transaction
     await prisma.transaction.create({
@@ -42,6 +50,7 @@ export async function payRecurringBill(instanceId: string, amount: number, date:
             note: `Payment for ${instance.rule.name}`,
             date,
             recurringInstanceId: instanceId,
+            userId,
         },
     });
 
@@ -52,7 +61,7 @@ export async function payRecurringBill(instanceId: string, amount: number, date:
 
     // Checking total paid so far
     const allPayments = await prisma.transaction.findMany({
-        where: { recurringInstanceId: instanceId },
+        where: { recurringInstanceId: instanceId, userId },
     });
     const totalPaid = allPayments.reduce((sum, t) => sum + t.amount, 0) + amount; // + current one? No wait, create() is separate.
 
@@ -62,7 +71,7 @@ export async function payRecurringBill(instanceId: string, amount: number, date:
 
     // Re-fetch to be safe
     const freshPayments = await prisma.transaction.findMany({
-        where: { recurringInstanceId: instanceId },
+        where: { recurringInstanceId: instanceId, userId },
     });
     const totalPaidFresh = freshPayments.reduce((sum, t) => sum + t.amount, 0);
 

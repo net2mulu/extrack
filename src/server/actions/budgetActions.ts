@@ -3,15 +3,19 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getMonthKey, getMonthDateRange } from "@/lib/utils";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 
 export async function createBudget(data: {
   categoryId: string;
   monthKey: string;
   limit: number;
 }) {
+  const userId = await getCurrentUserId();
+  
   const budget = await prisma.budget.upsert({
     where: {
-      categoryId_monthKey: {
+      userId_categoryId_monthKey: {
+        userId,
         categoryId: data.categoryId,
         monthKey: data.monthKey,
       },
@@ -20,6 +24,7 @@ export async function createBudget(data: {
       categoryId: data.categoryId,
       monthKey: data.monthKey,
       limit: data.limit,
+      userId,
     },
     update: {
       limit: data.limit,
@@ -34,6 +39,17 @@ export async function updateBudget(
   budgetId: string,
   data: { limit: number }
 ) {
+  const userId = await getCurrentUserId();
+  
+  // Verify budget belongs to user
+  const budget = await prisma.budget.findUnique({
+    where: { id: budgetId },
+  });
+  
+  if (!budget || budget.userId !== userId) {
+    throw new Error("Budget not found");
+  }
+  
   const updated = await prisma.budget.update({
     where: { id: budgetId },
     data: { limit: data.limit },
@@ -44,6 +60,17 @@ export async function updateBudget(
 }
 
 export async function deleteBudget(budgetId: string) {
+  const userId = await getCurrentUserId();
+  
+  // Verify budget belongs to user
+  const budget = await prisma.budget.findUnique({
+    where: { id: budgetId },
+  });
+  
+  if (!budget || budget.userId !== userId) {
+    throw new Error("Budget not found");
+  }
+  
   await prisma.budget.delete({
     where: { id: budgetId },
   });
@@ -52,8 +79,10 @@ export async function deleteBudget(budgetId: string) {
 }
 
 export async function getBudgetsForMonth(monthKey: string) {
+  const userId = await getCurrentUserId();
+  
   const budgets = await prisma.budget.findMany({
-    where: { monthKey },
+    where: { userId, monthKey },
     include: { category: true },
   });
 
@@ -65,6 +94,7 @@ export async function getBudgetsForMonth(monthKey: string) {
     budgets.map(async (budget) => {
       const spent = await prisma.transaction.aggregate({
         where: {
+          userId,
           categoryId: budget.categoryId,
           type: "EXPENSE",
           date: {
@@ -87,6 +117,8 @@ export async function getBudgetsForMonth(monthKey: string) {
 }
 
 export async function suggestBudget(categoryId: string, monthKey: string) {
+  const userId = await getCurrentUserId();
+  
   // Get last 3 months of expenses for this category
   const currentDate = new Date(`${monthKey}-01`);
   const threeMonthsAgo = new Date(currentDate);
@@ -94,6 +126,7 @@ export async function suggestBudget(categoryId: string, monthKey: string) {
 
   const expenses = await prisma.transaction.findMany({
     where: {
+      userId,
       categoryId,
       type: "EXPENSE",
       date: {

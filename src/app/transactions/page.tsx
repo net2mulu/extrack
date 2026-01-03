@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Transaction, Category } from "@prisma/client";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { CategoryIcon } from "@/lib/iconMap";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Disable all caching
@@ -20,9 +21,27 @@ export default async function TransactionsPage({
   const monthKey = params?.month || getMonthKey();
   // Calculate proper date range for the month
   const { startDate, endDate } = getMonthDateRange(monthKey);
+  
+  let userId: string;
+  try {
+    userId = await getCurrentUserId();
+  } catch (error) {
+    // User not authenticated - middleware should redirect, but handle gracefully
+    return (
+      <div className="space-y-4 animate-in fade-in duration-500">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold">Transactions</h1>
+        </div>
+        <div className="text-center py-20 text-muted-foreground">
+          Please sign in to view transactions.
+        </div>
+      </div>
+    );
+  }
 
   const transactions = await prisma.transaction.findMany({
       where: {
+        userId,
         date: {
           gte: startDate,
           lt: endDate, // Use lt (less than) for exclusive end date

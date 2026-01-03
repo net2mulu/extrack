@@ -22,6 +22,64 @@ enum RecurringStatus {
 }
 
 // -----------------------------------------------------------------------------
+// Authentication Models (NextAuth.js)
+// -----------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?   // Hashed password for credentials provider
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  accounts          Account[]
+  sessions          Session[]
+  transactions      Transaction[]
+  budgets           Budget[]
+  savingGoals       SavingGoal[]
+  monthLedgers      MonthLedger[]
+  recurringRules    RecurringRule[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// -----------------------------------------------------------------------------
 // Models
 // -----------------------------------------------------------------------------
 
@@ -49,6 +107,9 @@ model Transaction {
   vendor      String?
   tags        String[]
   
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   category    Category?       @relation(fields: [categoryId], references: [id])
   categoryId  String?
 
@@ -60,6 +121,7 @@ model Transaction {
   updatedAt   DateTime @updatedAt
 
   @@index([date])
+  @@index([userId])
 }
 
 model RecurringRule {
@@ -74,10 +136,15 @@ model RecurringRule {
   // E.g. "MONTHLY" - for now we assume all are monthly based on requirements
   interval    String   @default("MONTHLY") 
 
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   instances   RecurringInstance[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model RecurringInstance {
@@ -100,11 +167,17 @@ model RecurringInstance {
 
 model MonthLedger {
   id          String   @id @default(cuid())
-  monthKey    String   @unique // "YYYY-MM"
+  monthKey    String   // "YYYY-MM"
   income      Float    @default(0)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@unique([userId, monthKey])
+  @@index([userId])
 }
 
 model Budget {
@@ -112,13 +185,17 @@ model Budget {
   monthKey    String // "YYYY-MM"
   limit       Float
   
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   category    Category @relation(fields: [categoryId], references: [id])
   categoryId  String
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@unique([categoryId, monthKey])
+  @@unique([userId, categoryId, monthKey])
+  @@index([userId])
 }
 
 model SavingGoal {
@@ -129,6 +206,11 @@ model SavingGoal {
   deadline      DateTime?
   color         String?   // For UI visuals
   
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
 }
