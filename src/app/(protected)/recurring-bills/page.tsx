@@ -8,7 +8,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { RecurringInstance, RecurringRule, Category } from "@prisma/client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0; // Disable all caching
 
 export default async function RecurringBillsPage({
@@ -16,25 +16,20 @@ export default async function RecurringBillsPage({
 }: {
   searchParams: Promise<{ month?: string }> | { month?: string };
 }) {
-  // Handle both Promise (Next.js 15+) and direct searchParams
   const params = searchParams instanceof Promise ? await searchParams : searchParams;
   const monthKey = params?.month || getMonthKey();
-  
+
   type InstanceWithRule = RecurringInstance & { rule: RecurringRule & { category: Category | null } };
   let instances: InstanceWithRule[] = [];
   try {
-    // Ensure ledger exists (this also creates recurring instances if needed)
     await ensureMonthLedger(monthKey);
-    // Fetch all recurring instances for this month
     instances = await getRecurringInstancesForMonth(monthKey);
-  } catch (error) {
-    // User not authenticated - middleware should redirect, but handle gracefully
+  } catch {
     instances = [];
   }
 
   return (
     <div key={`recurring-bills-${monthKey}`} className="space-y-4 animate-in fade-in duration-500">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3">
           <Link href={`/?month=${monthKey}`}>
@@ -46,10 +41,8 @@ export default async function RecurringBillsPage({
         </div>
       </div>
 
-      {/* Month Selector */}
       <MonthSelector />
 
-      {/* Recurring Bills List */}
       {instances && instances.length > 0 ? (
         <RecurringBillList instances={instances} />
       ) : (
@@ -71,4 +64,5 @@ export default async function RecurringBillsPage({
     </div>
   );
 }
+
 

@@ -8,7 +8,7 @@ import { deleteGoal, addToGoal, subtractFromGoal, getAllGoals } from "@/server/a
 import { GoalActions } from "@/components/goals/GoalActions";
 import { AddGoalDialog } from "@/components/goals/AddGoalDialog";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function GoalsPage({
@@ -87,8 +87,7 @@ export default async function GoalsPage({
                     <div className="flex justify-between text-sm font-medium">
                       <span className="text-muted-foreground">Saved</span>
                       <span className="font-bold">
-                        {formatCurrency(goal.currentAmount)} /{" "}
-                        {formatCurrency(goal.targetAmount)}
+                        {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
                       </span>
                     </div>
                     <div className="h-4 w-full bg-secondary rounded-full overflow-hidden">
@@ -111,3 +110,5 @@ export default async function GoalsPage({
     </div>
   );
 }
+
+

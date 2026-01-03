@@ -10,7 +10,7 @@ import { CategoriesSection } from "@/components/settings/CategoriesSection";
 import { AccountSection } from "@/components/settings/AccountSection";
 import { getMonthKey } from "@/lib/utils";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function SettingsPage({
@@ -20,10 +20,7 @@ export default async function SettingsPage({
 }) {
   const params = searchParams instanceof Promise ? await searchParams : searchParams;
   const monthKey = params?.month || getMonthKey();
-  const [recurringRules, categories] = await Promise.all([
-    getAllRecurringRules(),
-    getAllCategories(),
-  ]);
+  const [recurringRules, categories] = await Promise.all([getAllRecurringRules(), getAllCategories()]);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500 pb-24">
@@ -86,4 +83,5 @@ export default async function SettingsPage({
     </div>
   );
 }
+
 

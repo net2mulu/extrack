@@ -9,7 +9,7 @@ import { ArrowLeft, Plus, Lightbulb } from "lucide-react";
 import { BudgetList } from "@/components/budgets/BudgetList";
 import { AddBudgetDialog } from "@/components/budgets/AddBudgetDialog";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0; // Disable all caching
 
 export default async function BudgetsPage({
@@ -17,23 +17,16 @@ export default async function BudgetsPage({
 }: {
   searchParams: Promise<{ month?: string }> | { month?: string };
 }) {
-  // Handle both Promise (Next.js 15+) and direct searchParams
   const params = searchParams instanceof Promise ? await searchParams : searchParams;
   const monthKey = params?.month || getMonthKey();
   const budgets = await getBudgetsForMonth(monthKey);
   const categories = await getAllCategories();
 
-  // Get expense categories (exclude income categories)
   const incomeCatNames = ["Salary", "Business", "Freelance", "Gift"];
-  const expenseCategories = categories.filter(
-    (cat) => !incomeCatNames.includes(cat.name)
-  );
+  const expenseCategories = categories.filter((cat) => !incomeCatNames.includes(cat.name));
 
-  // Get categories that don't have budgets yet
   const budgetedCategoryIds = new Set(budgets.map((b) => b.categoryId));
-  const unbudgetedCategories = expenseCategories.filter(
-    (cat) => !budgetedCategoryIds.has(cat.id)
-  );
+  const unbudgetedCategories = expenseCategories.filter((cat) => !budgetedCategoryIds.has(cat.id));
 
   const displayDate = new Date(`${monthKey}-01`);
 
@@ -48,10 +41,7 @@ export default async function BudgetsPage({
           </Link>
           <h1 className="text-xl sm:text-2xl font-bold">Budgets</h1>
         </div>
-        <AddBudgetDialog
-          categories={unbudgetedCategories}
-          monthKey={monthKey}
-        />
+        <AddBudgetDialog categories={unbudgetedCategories} monthKey={monthKey} />
       </div>
 
       <MonthSelector />
@@ -65,10 +55,7 @@ export default async function BudgetsPage({
           <p className="text-muted-foreground max-w-sm">
             Create budgets for your expense categories to track spending.
           </p>
-          <AddBudgetDialog
-            categories={expenseCategories}
-            monthKey={monthKey}
-          />
+          <AddBudgetDialog categories={expenseCategories} monthKey={monthKey} />
         </div>
       ) : (
         <>
@@ -79,10 +66,7 @@ export default async function BudgetsPage({
                 <CardTitle className="text-sm">Add More Budgets</CardTitle>
               </CardHeader>
               <CardContent>
-                <AddBudgetDialog
-                  categories={unbudgetedCategories}
-                  monthKey={monthKey}
-                />
+                <AddBudgetDialog categories={unbudgetedCategories} monthKey={monthKey} />
               </CardContent>
             </Card>
           )}
@@ -91,3 +75,5 @@ export default async function BudgetsPage({
     </div>
   );
 }
+
+
