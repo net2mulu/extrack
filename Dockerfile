@@ -30,7 +30,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install wget for healthcheck and Prisma CLI globally
+# Install wget for healthcheck, Prisma CLI globally, and dotenv
 RUN apk add --no-cache wget && \
     npm install -g prisma@^7.2.0 dotenv
 
@@ -45,7 +45,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma files and binaries
+# Copy Prisma files and binaries (everything needed for migrations)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
@@ -57,17 +57,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.
 # Copy package.json and node_modules/.bin for npx to work
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
-
-# Create a simple startup script that allows manual migration before starting
-RUN echo '#!/bin/sh' > /start.sh && \
-    echo 'if [ "$1" = "migrate" ]; then' >> /start.sh && \
-    echo '  echo "Running database migrations..."' >> /start.sh && \
-    echo '  cd /app' >> /start.sh && \
-    echo '  prisma migrate deploy' >> /start.sh && \
-    echo '  exit $?' >> /start.sh && \
-    echo 'fi' >> /start.sh && \
-    echo 'exec node server.js' >> /start.sh && \
-    chmod +x /start.sh
 
 # Switch to non-root user
 USER nextjs
@@ -81,4 +70,5 @@ ENV HOSTNAME="0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-CMD ["/start.sh"]
+# Start the app directly - migrations can be run manually via docker exec
+CMD ["node", "server.js"]

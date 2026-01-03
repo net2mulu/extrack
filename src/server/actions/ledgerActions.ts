@@ -5,10 +5,11 @@ import { getMonthKey, getMonthDateRange } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export async function ensureMonthLedger(monthKey: string) {
-    // Check if ledger exists
-    let ledger = await prisma.monthLedger.findUnique({
-        where: { monthKey },
-    });
+    try {
+        // Check if ledger exists
+        let ledger = await prisma.monthLedger.findUnique({
+            where: { monthKey },
+        });
 
     if (!ledger) {
         // Only create ledger if month is current or future
@@ -62,16 +63,24 @@ export async function ensureMonthLedger(monthKey: string) {
     }
 
     return ledger;
+    } catch (error: any) {
+        // If tables don't exist yet (migrations not run), return null gracefully
+        if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+            return null;
+        }
+        throw error;
+    }
 }
 
 export async function getDashboardData(monthKey: string) {
-    // Only ensure ledger for current/future months
-    await ensureMonthLedger(monthKey);
+    try {
+        // Only ensure ledger for current/future months
+        await ensureMonthLedger(monthKey);
 
-    // Calculate proper date range for the month
-    const { startDate, endDate } = getMonthDateRange(monthKey);
+        // Calculate proper date range for the month
+        const { startDate, endDate } = getMonthDateRange(monthKey);
 
-    const [ledger, instances, recentTransactions, goals, budgets] = await Promise.all([
+        const [ledger, instances, recentTransactions, goals, budgets] = await Promise.all([
         prisma.monthLedger.findUnique({ where: { monthKey } }),
         prisma.recurringInstance.findMany({
             where: { monthKey },
@@ -160,6 +169,21 @@ export async function getDashboardData(monthKey: string) {
         totalExpenses: totalExpenses._sum.amount || 0,
         totalIncome: incomeSum, // Passing actual income sum
     };
+    } catch (error: any) {
+        // If tables don't exist yet (migrations not run), return empty data
+        if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
+            return {
+                ledger: null,
+                instances: [],
+                recentTransactions: [],
+                goals: [],
+                budgets: [],
+                totalExpenses: 0,
+                totalIncome: 0,
+            };
+        }
+        throw error;
+    }
 }
 
 export async function setMonthlyIncome(monthKey: string, income: number) {
