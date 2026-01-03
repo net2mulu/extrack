@@ -10,6 +10,7 @@ import { CategoryIcon } from "@/lib/iconMap";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type InstanceWithRule = RecurringInstance & {
   rule: RecurringRule & { category: Category | null };
@@ -74,6 +75,7 @@ function BillItem({ instance }: { instance: InstanceWithRule }) {
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { addToast } = useToast();
+  const router = useRouter();
   const isPaid = instance.status === "PAID";
   
   const handlePay = async () => {
@@ -86,6 +88,8 @@ function BillItem({ instance }: { instance: InstanceWithRule }) {
     try {
       await payRecurringBill(instance.id, instance.amountDue, new Date());
       addToast(`${instance.rule.name} marked as paid`, "success");
+      setShowConfirm(false);
+      router.refresh();
     } catch (e) {
       addToast("Failed to pay bill", "error");
     } finally {

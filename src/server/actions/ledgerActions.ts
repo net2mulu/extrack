@@ -20,55 +20,55 @@ export async function ensureMonthLedger(monthKey: string) {
             where: { userId_monthKey: { userId, monthKey } },
         });
 
+    // Determine if this is current/future month (we only auto-create ledgers + instances for current/future)
+    const [year, month] = monthKey.split("-").map(Number);
+    const monthDate = new Date(year, month - 1, 1);
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const isCurrentOrFutureMonth = monthDate >= currentMonthStart;
+
     if (!ledger) {
-        // Only create ledger if month is current or future
         // Don't auto-create for past months with no data
-        const [year, month] = monthKey.split("-").map(Number);
-        const monthDate = new Date(year, month - 1, 1);
-        const today = new Date();
-        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        
-        // Only auto-create for current month or future months
-        if (monthDate >= currentMonthStart) {
-            // Create ledger
-            ledger = await prisma.monthLedger.create({
-                data: {
-                    monthKey,
-                    income: 0,
-                    userId,
+        if (!isCurrentOrFutureMonth) {
+            return null;
+        }
+        // Create ledger for current/future
+        ledger = await prisma.monthLedger.create({
+            data: {
+                monthKey,
+                income: 0,
+                userId,
+            },
+        });
+    }
+
+    // Always ensure recurring instances exist for current/future months.
+    // This covers the case where the ledger already existed and the user added new recurring rules later.
+    if (isCurrentOrFutureMonth) {
+        const rules = await prisma.recurringRule.findMany({
+            where: { active: true, userId },
+        });
+
+        for (const rule of rules) {
+            const existing = await prisma.recurringInstance.findUnique({
+                where: {
+                    ruleId_monthKey: {
+                        ruleId: rule.id,
+                        monthKey,
+                    },
                 },
             });
 
-            // Generate Recurring Instances for this month
-            const rules = await prisma.recurringRule.findMany({
-                where: { active: true, userId },
-            });
-
-            for (const rule of rules) {
-                // Check if instance already exists (idempotency)
-                const existing = await prisma.recurringInstance.findUnique({
-                    where: {
-                        ruleId_monthKey: {
-                            ruleId: rule.id,
-                            monthKey,
-                        },
+            if (!existing) {
+                await prisma.recurringInstance.create({
+                    data: {
+                        ruleId: rule.id,
+                        monthKey,
+                        amountDue: rule.amount,
+                        status: "DUE",
                     },
                 });
-
-                if (!existing) {
-                    await prisma.recurringInstance.create({
-                        data: {
-                            ruleId: rule.id,
-                            monthKey,
-                            amountDue: rule.amount,
-                            status: "DUE",
-                        },
-                    });
-                }
             }
-        } else {
-            // For past months, return null (no ledger exists)
-            return null;
         }
     }
 

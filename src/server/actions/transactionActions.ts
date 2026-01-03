@@ -87,6 +87,8 @@ export async function payRecurringBill(instanceId: string, amount: number, date:
     });
 
     revalidatePath("/");
+    revalidatePath("/recurring-bills");
+    revalidatePath("/transactions");
 }
 
 export async function getCategories() {

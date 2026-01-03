@@ -69,11 +69,12 @@ export function EditGoalDialog({ goal }: { goal: SavingGoal }) {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 z-[100] flex items-end"
+      className="fixed inset-0 bg-black/60 z-[100] flex items-end"
       onClick={() => setOpen(false)}
     >
       <div
-        className="bg-background w-full rounded-t-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom z-[101]"
+        className="w-full rounded-t-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom z-[101] border border-border shadow-2xl"
+        style={{ backgroundColor: "hsl(var(--background))", opacity: 1 }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center">

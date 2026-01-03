@@ -219,15 +219,29 @@ export default async function Dashboard({
       )}
 
       {/* Recurring Bills */}
-      {data.instances && data.instances.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <h2 className="text-base sm:text-lg font-semibold">Recurring Bills</h2>
-            <Link href={`/recurring-bills?month=${monthKey}`} className="text-primary text-xs sm:text-sm">View All</Link>
-          </div>
-          <RecurringBillList instances={data.instances} limit={3} />
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <h2 className="text-base sm:text-lg font-semibold">Recurring Bills</h2>
+          <Link href={`/recurring-bills?month=${monthKey}`} className="text-primary text-xs sm:text-sm">
+            View All
+          </Link>
         </div>
-      )}
+
+        {data.instances && data.instances.length > 0 ? (
+          <RecurringBillList instances={data.instances} limit={3} />
+        ) : (
+          <Card>
+            <CardContent className="p-4 text-sm text-muted-foreground flex items-center justify-between gap-3">
+              <span>No recurring bills for this month.</span>
+              <Link href="/settings">
+                <Button size="sm" variant="outline" className="h-8 text-xs">
+                  Manage Rules
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Goals Snippet */}
       <div className="space-y-3">
