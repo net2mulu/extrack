@@ -63,8 +63,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 # Copy Prisma config file (needed for migrations)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
-# Copy dotenv for prisma.config.ts (Prisma 7 handles TypeScript config natively)
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/dotenv ./node_modules/dotenv
+# Note: dotenv is installed globally above (line 44), prisma.config.ts should work with that
 
 # Copy package.json and node_modules/.bin for npx to work
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
@@ -73,25 +72,31 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/
 # Create entrypoint script for migrations (as root, before switching user)
 RUN echo '#!/bin/sh' > /entrypoint.sh && \
     echo 'set +e' >> /entrypoint.sh && \
+    echo 'echo "=========================================="' >> /entrypoint.sh && \
+    echo 'echo "Container starting - Entrypoint script executing"' >> /entrypoint.sh && \
+    echo 'echo "DATABASE_URL is set: $([ -n "$DATABASE_URL" ] && echo "YES" || echo "NO")"' >> /entrypoint.sh && \
     echo 'if [ -n "$DATABASE_URL" ]; then' >> /entrypoint.sh && \
-    echo '  echo "=========================================="' >> /entrypoint.sh && \
     echo '  echo "Waiting for database connection..."' >> /entrypoint.sh && \
     echo '  sleep 5' >> /entrypoint.sh && \
     echo '  echo "Running database migrations..."' >> /entrypoint.sh && \
     echo '  cd /app' >> /entrypoint.sh && \
     echo '  export DATABASE_URL' >> /entrypoint.sh && \
-    echo '  prisma migrate deploy' >> /entrypoint.sh && \
+    echo '  echo "Current directory: $(pwd)"' >> /entrypoint.sh && \
+    echo '  echo "Prisma config exists: $([ -f prisma.config.ts ] && echo "YES" || echo "NO")"' >> /entrypoint.sh && \
+    echo '  echo "Prisma migrations exist: $([ -d prisma/migrations ] && echo "YES" || echo "NO")"' >> /entrypoint.sh && \
+    echo '  prisma migrate deploy 2>&1' >> /entrypoint.sh && \
     echo '  MIGRATION_EXIT=$?' >> /entrypoint.sh && \
     echo '  if [ $MIGRATION_EXIT -eq 0 ]; then' >> /entrypoint.sh && \
     echo '    echo "✓ Migrations completed successfully"' >> /entrypoint.sh && \
     echo '  else' >> /entrypoint.sh && \
     echo '    echo "✗ Migration failed with exit code $MIGRATION_EXIT"' >> /entrypoint.sh && \
-    echo '    echo "Continuing anyway..."' >> /entrypoint.sh && \
+    echo '    echo "Error details above. Continuing anyway..."' >> /entrypoint.sh && \
     echo '  fi' >> /entrypoint.sh && \
-    echo '  echo "=========================================="' >> /entrypoint.sh && \
     echo 'else' >> /entrypoint.sh && \
     echo '  echo "WARNING: DATABASE_URL not set, skipping migrations"' >> /entrypoint.sh && \
     echo 'fi' >> /entrypoint.sh && \
+    echo 'echo "=========================================="' >> /entrypoint.sh && \
+    echo 'echo "Starting application..."' >> /entrypoint.sh && \
     echo 'set -e' >> /entrypoint.sh && \
     echo 'exec "$@"' >> /entrypoint.sh && \
     chmod +x /entrypoint.sh
