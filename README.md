@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ExTrack - Production Ready Expense Tracker
+
+A mobile-first personal finance tracker built with Next.js 16, Prisma 7, and PostgreSQL.
+
+## Features
+- **Dashboard**: Monthly summary, budget progress, upcoming recurring bills.
+- **Quick Add**: Fast transaction entry with category chips and numpad.
+- **Recurring Rules**: Auto-generated monthly bills (Rent, Microfinance) with "Mark Paid" workflow.
+- **Goals**: Visual saving goals tracking.
+- **Tech Stack**: Next.js 16 (App Router), Tailwind CSS, shadcn/ui, Prisma 7, Docker.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 18+
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### Setup
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Start Database**
+   ```bash
+   docker compose up -d
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. **Initialize Database**
+   This will push the schema and seed default categories/rules.
+   ```bash
+   # If you have existing data you want to keep:
+   # npx prisma migrate dev
 
-## Learn More
+   # For a fresh reset (Recommended for first run):
+   npx prisma db push --accept-data-loss
+   npx tsx prisma/seed.ts
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. **Access App**
+   Open [http://localhost:3000](http://localhost:3000) (or 3001 if 3000 is taken).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
+- `src/app`: Page routes and layouts.
+- `src/components`: UI components (shadcn/ui) and feature components.
+- `src/server/actions`: Server Actions for mutations and data fetching.
+- `src/lib`: Utilities and Prisma client.
+- `prisma`: Database schema and seed script.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Customization
+- Edit `prisma/seed.ts` to change default categories or recurring rules.
+- Edit `tailwind.config.ts` for theme colors.

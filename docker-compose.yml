@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-extrack_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-extrack_password}
+      POSTGRES_DB: ${POSTGRES_DB:-extrack_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-extrack_user} -d ${POSTGRES_DB:-extrack_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - extrack-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - extrack-network
+
+volumes:
+  postgres_data:
+
+networks:
+  extrack-network:
+    driver: bridge

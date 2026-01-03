@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Core Enums
+// -----------------------------------------------------------------------------
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum RecurringStatus {
+  DUE
+  PAID
+  SKIPPED
+  PARTIAL
+}
+
+// -----------------------------------------------------------------------------
+// Models
+// -----------------------------------------------------------------------------
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String?  // Emoji or icon name
+  color     String?  // Hex code
+  isDefault Boolean  @default(false)
+  
+  transactions   Transaction[]
+  recurringRules RecurringRule[]
+  budgets        Budget[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  amount      Float
+  type        TransactionType
+  date        DateTime        @default(now()) // spentAt
+  note        String?
+  vendor      String?
+  tags        String[]
+  
+  category    Category?       @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+
+  // Link to a recurring instance if this payment satisfies a bill
+  recurringInstance   RecurringInstance? @relation(fields: [recurringInstanceId], references: [id])
+  recurringInstanceId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
+
+model RecurringRule {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  dayOfMonth  Int      // 1-31
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+  active      Boolean  @default(true)
+  
+  // E.g. "MONTHLY" - for now we assume all are monthly based on requirements
+  interval    String   @default("MONTHLY") 
+
+  instances   RecurringInstance[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RecurringInstance {
+  id          String          @id @default(cuid())
+  monthKey    String          // "YYYY-MM"
+  status      RecurringStatus @default(DUE)
+  amountDue   Float
+  
+  rule        RecurringRule   @relation(fields: [ruleId], references: [id])
+  ruleId      String
+
+  // One instance can have multiple payments if split (PARTIAL -> PAID)
+  payments    Transaction[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([ruleId, monthKey])
+}
+
+model MonthLedger {
+  id          String   @id @default(cuid())
+  monthKey    String   @unique // "YYYY-MM"
+  income      Float    @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  monthKey    String // "YYYY-MM"
+  limit       Float
+  
+  category    Category @relation(fields: [categoryId], references: [id])
+  categoryId  String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([categoryId, monthKey])
+}
+
+model SavingGoal {
+  id            String    @id @default(cuid())
+  title         String
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  deadline      DateTime?
+  color         String?   // For UI visuals
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
