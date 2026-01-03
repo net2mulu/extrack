@@ -25,6 +25,9 @@ declare module "next-auth" {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET || "fallback-secret-for-development",
+  // Fixes "There is a problem with the server configuration" in production behind proxies (Coolify, Docker, etc)
+  // by trusting X-Forwarded-* headers.
+  trustHost: true,
   session: {
     strategy: "jwt",
   },

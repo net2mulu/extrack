@@ -14,9 +14,10 @@ export const revalidate = 0;
 export default async function GoalsPage({
   searchParams,
 }: {
-  searchParams: { month?: string };
+  searchParams: Promise<{ month?: string }> | { month?: string };
 }) {
-  const monthKey = searchParams.month || getMonthKey();
+  const params = searchParams instanceof Promise ? await searchParams : searchParams;
+  const monthKey = params?.month || getMonthKey();
   const goals = await getAllGoals();
 
   return (
