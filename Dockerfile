@@ -63,10 +63,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 # Copy Prisma config file (needed for migrations)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 
-# Copy dotenv and TypeScript/ts-node for prisma.config.ts
+# Copy dotenv for prisma.config.ts (Prisma 7 handles TypeScript config natively)
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/dotenv ./node_modules/dotenv
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/typescript ./node_modules/typescript
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/ts-node ./node_modules/ts-node
 
 # Copy package.json and node_modules/.bin for npx to work
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
