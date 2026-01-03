@@ -9,6 +9,9 @@ import { deleteGoal, addToGoal, subtractFromGoal } from "@/server/actions/goalAc
 import { GoalActions } from "@/components/goals/GoalActions";
 import { AddGoalDialog } from "@/components/goals/AddGoalDialog";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function GoalsPage({
   searchParams,
 }: {

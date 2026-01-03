@@ -43,7 +43,14 @@ export default async function Dashboard({
     <div key={`dashboard-${monthKey}`} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/logo.png" 
+            alt="ExTrack Logo" 
+            className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
+          />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
+        </div>
       </div>
 
       {/* Month Selector */}

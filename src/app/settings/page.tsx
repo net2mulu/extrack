@@ -8,6 +8,9 @@ import { RecurringRulesSection } from "@/components/settings/RecurringRulesSecti
 import { CategoriesSection } from "@/components/settings/CategoriesSection";
 import { getMonthKey } from "@/lib/utils";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function SettingsPage({
   searchParams,
 }: {
