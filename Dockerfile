@@ -58,6 +58,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
 
+# Create a simple startup script that allows manual migration before starting
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'if [ "$1" = "migrate" ]; then' >> /start.sh && \
+    echo '  echo "Running database migrations..."' >> /start.sh && \
+    echo '  cd /app' >> /start.sh && \
+    echo '  prisma migrate deploy' >> /start.sh && \
+    echo '  exit $?' >> /start.sh && \
+    echo 'fi' >> /start.sh && \
+    echo 'exec node server.js' >> /start.sh && \
+    chmod +x /start.sh
+
 # Switch to non-root user
 USER nextjs
 
@@ -70,4 +81,4 @@ ENV HOSTNAME="0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
 
-CMD ["node", "server.js"]
+CMD ["/start.sh"]
