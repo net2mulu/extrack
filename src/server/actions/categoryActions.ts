@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { ensureDefaultCategories } from "@/server/actions/categoryBootstrap";
 
 export async function createCategory(data: {
   name: string;
@@ -65,6 +66,7 @@ export async function deleteCategory(categoryId: string) {
 }
 
 export async function getAllCategories() {
+  await ensureDefaultCategories();
   return await prisma.category.findMany({
     orderBy: [{ isDefault: "desc" }, { name: "asc" }],
   });

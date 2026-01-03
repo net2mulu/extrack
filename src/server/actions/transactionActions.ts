@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { TransactionType } from "@prisma/client";
 import { getCurrentUserId } from "@/lib/auth-helpers";
+import { ensureDefaultCategories } from "@/server/actions/categoryBootstrap";
 
 export async function addTransaction(data: {
     amount: number;
@@ -89,6 +90,7 @@ export async function payRecurringBill(instanceId: string, amount: number, date:
 }
 
 export async function getCategories() {
+    await ensureDefaultCategories();
     return await prisma.category.findMany({
         orderBy: { isDefault: 'desc' }, // default first
     });
